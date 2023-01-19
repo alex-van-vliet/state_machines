@@ -1,18 +1,14 @@
 #include "dfa.hpp"
-#include "epsilon_nfa.hpp"
 #include "nfa.hpp"
+#include "regex.hpp"
 #include "runtime_nfa.hpp"
 #include "string.hpp"
-#include "transition_list.hpp"
-#include "transitions.hpp"
 
-using epsilon_nfa::StateMachine, epsilon_nfa::Concatenation, epsilon_nfa::Union, epsilon_nfa::KleeneStar;
-using transition_list::Entry, transition_list::Node;
-using transitions::Character, transitions::Epsilon;
+using regex::Character, regex::CharacterRange, regex::star;
 
-using sm1 = KleeneStar<Union<
-        StateMachine<3, 0, 2, Node<Entry<Character<'a'>, 0, 1>, Node<Entry<Character<'b'>, 1, 2>>>>,
-        StateMachine<2, 0, 1, Node<Entry<Character<'c'>, 0, 1>>>>>;
+constexpr auto non_null_digit = Character<'1'>{} | Character<'2'>{} | Character<'3'>{} | Character<'4'>{} | Character<'5'>{} | Character<'6'>{} | Character<'7'>{} | Character<'8'>{} | Character<'9'>{};
+constexpr auto digit = CharacterRange<'0', '9'>{};
+using sm1 = regex::ToStateMachineT<decltype((non_null_digit & star(digit)) | Character<'0'>{})>;// [0-9]+ = [0-9][0-9]*
 using sm2 = nfa::EpsilonRemovalT<sm1>;
 using sm3 = dfa::DFAConversionT<sm2>;
 
@@ -23,12 +19,13 @@ int main() {
 
 #define TEST(sm, s, ...) std::cout << s << ": " << runtime_nfa::ToRuntimeT<sm>{}.test(s) << " - " << dfa::EvaluateV<sm, ::string::String<__VA_ARGS__>> << std::endl;
     TEST(sm3, "")
-    TEST(sm3, "ab", 'a', 'b')
-    TEST(sm3, "c", 'c')
-    TEST(sm3, "abc", 'a', 'b', 'c')
-    TEST(sm3, "abccc", 'a', 'b', 'c', 'c', 'c')
-    TEST(sm3, "b", 'b')
-    TEST(sm3, "a", 'a')
+    TEST(sm3, "0", '0')
+    TEST(sm3, "1", '1')
+    TEST(sm3, "01", '0', '1')
+    TEST(sm3, "10", '1', '0')
+    TEST(sm3, "1234567890", '1', '2', '3', '4', '5', '6', '7', '8', '9', '0')
+    TEST(sm3, "42", '4', '2')
+    TEST(sm3, "042", '0', '4', '2')
 
     return 0;
 }
