@@ -5,9 +5,12 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(state_machines
         main.cpp
+        char_state_list_map.hpp
+        dfa.hpp
         epsilon_nfa.hpp
         nfa.hpp
         state_list.hpp
+        state_list_list.hpp
         states.hpp
         transition_list.hpp
         transitions.hpp
