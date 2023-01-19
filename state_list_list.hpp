@@ -17,7 +17,7 @@ namespace state_list_list {
     };
 
     template<>
-    struct Length<::state_list_list::End> {
+    struct Length<End> {
         constexpr static size_t length = 0;
     };
 
