@@ -145,4 +145,29 @@ namespace transition_list {
 
     template<size_t NEW_FROM, typename TRANSITION_LIST>
     using UpdateFromT = typename UpdateFrom<NEW_FROM, TRANSITION_LIST>::transition_list;
+
+
+    template<size_t TO>
+    struct TransitionFound {
+        constexpr static size_t to = TO;
+    };
+    struct TransitionNotFound {};
+    template<size_t FROM, typename TRANSITION, typename TRANSITION_LIST>
+    struct FindToWithTransition {
+        using result = typename FindToWithTransition<FROM, TRANSITION, typename TRANSITION_LIST::next>::result;
+    };
+    template<size_t FROM, typename TRANSITION, size_t TO, typename NEXT>
+    struct FindToWithTransition<FROM, TRANSITION, Node<Entry<TRANSITION, FROM, TO>, NEXT>> {
+        using result = TransitionFound<TO>;
+    };
+
+    template<size_t FROM, typename TRANSITION>
+    struct FindToWithTransition<FROM, TRANSITION, End> {
+        using result = TransitionNotFound;
+    };
+
+    template<size_t FROM, typename TRANSITION, typename TRANSITION_LIST>
+    using FindToWithTransitionT = typename FindToWithTransition<FROM, TRANSITION, TRANSITION_LIST>::result;
+    template<size_t FROM, typename TRANSITION, typename TRANSITION_LIST>
+    constexpr size_t FindToWithTransitionV = FindToWithTransition<FROM, TRANSITION, TRANSITION_LIST>::result::to;
 }// namespace transition_list

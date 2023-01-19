@@ -2,6 +2,7 @@
 #include "epsilon_nfa.hpp"
 #include "nfa.hpp"
 #include "runtime_nfa.hpp"
+#include "string.hpp"
 #include "transition_list.hpp"
 #include "transitions.hpp"
 
@@ -20,15 +21,14 @@ int main() {
     sm2::draw();
     sm3::draw();
 
-    runtime_nfa::ToRuntimeT<sm3> sm4;
-#define TEST(sm, s) std::cout << s << ": " << sm4.test(s) << std::endl;
-    TEST(sm4, "")
-    TEST(sm4, "ab")
-    TEST(sm4, "c")
-    TEST(sm4, "abc")
-    TEST(sm4, "abccc")
-    TEST(sm4, "b")
-    TEST(sm4, "a")
+#define TEST(sm, s, ...) std::cout << s << ": " << runtime_nfa::ToRuntimeT<sm>{}.test(s) << " - " << dfa::EvaluateV<sm, ::string::String<__VA_ARGS__>> << std::endl;
+    TEST(sm3, "")
+    TEST(sm3, "ab", 'a', 'b')
+    TEST(sm3, "c", 'c')
+    TEST(sm3, "abc", 'a', 'b', 'c')
+    TEST(sm3, "abccc", 'a', 'b', 'c', 'c', 'c')
+    TEST(sm3, "b", 'b')
+    TEST(sm3, "a", 'a')
 
     return 0;
 }

@@ -13,6 +13,7 @@ add_executable(state_machines
         state_list.hpp
         state_list_list.hpp
         states.hpp
+        string.hpp
         transition_list.hpp
         transitions.hpp
         types.hpp

@@ -4,6 +4,7 @@
 #include "state_list.hpp"
 #include "state_list_list.hpp"
 #include "states.hpp"
+#include "string.hpp"
 #include "transition_list.hpp"
 #include "transitions.hpp"
 #include "types.hpp"
@@ -159,4 +160,42 @@ namespace dfa {
 
     template<typename STATE_MACHINE>
     using DFAConversionT = typename DFAConversion<STATE_MACHINE>::state_machine;
+
+    template<typename TRANSITION_LIST, typename FINAL_STATE_LIST, size_t CURRENT_STATE, typename STRING>
+    struct Test_Helper {
+        constexpr static bool test = false;
+    };
+
+    template<typename TRANSITION_LIST, typename FINAL_STATE_LIST, size_t CURRENT_STATE>
+    struct Test_Helper<TRANSITION_LIST, FINAL_STATE_LIST, CURRENT_STATE, ::string::String<>> {
+        constexpr static bool test = ::state_list::ContainsV<FINAL_STATE_LIST, CURRENT_STATE>;
+    };
+
+    template<typename T>
+    concept HasTo = requires(T) {
+                        { T::to } -> std::convertible_to<size_t>;
+                    };
+
+    template<typename TRANSITION_LIST, typename FINAL_STATE_LIST, typename NEXT_STATE_SEARCH, typename STRING_AFTER>
+    constexpr bool ResolveNextStateSearch() {
+        if constexpr (HasTo<NEXT_STATE_SEARCH>) {
+            return Test_Helper<TRANSITION_LIST, FINAL_STATE_LIST, NEXT_STATE_SEARCH::to, STRING_AFTER>::test;
+        }
+        return false;
+    }
+
+    template<typename TRANSITION_LIST, typename FINAL_STATE_LIST, size_t CURRENT_STATE, char C, char... CHARS>
+    struct Test_Helper<TRANSITION_LIST, FINAL_STATE_LIST, CURRENT_STATE, ::string::String<C, CHARS...>> {
+        using next_state_search = ::transition_list::FindToWithTransitionT<CURRENT_STATE, ::transitions::Character<C>, TRANSITION_LIST>;
+
+        constexpr static bool test = ResolveNextStateSearch<TRANSITION_LIST, FINAL_STATE_LIST, next_state_search, ::string::String<CHARS...>>();
+    };
+
+    template<typename DFA, typename STRING>
+    struct Test {
+        constexpr static bool test = Test_Helper<typename DFA::transition_list, typename DFA::final_state_list, DFA::init_state, STRING>::test;
+    };
+
+    template<typename DFA, typename STRING>
+    constexpr bool EvaluateV = Test<DFA, STRING>::test;
 }// namespace dfa
