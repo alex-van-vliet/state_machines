@@ -1,6 +1,7 @@
 #include "dfa.hpp"
 #include "epsilon_nfa.hpp"
 #include "nfa.hpp"
+#include "runtime_nfa.hpp"
 #include "transition_list.hpp"
 #include "transitions.hpp"
 
@@ -18,6 +19,16 @@ int main() {
     sm1::draw();
     sm2::draw();
     sm3::draw();
+
+    runtime_nfa::ToRuntimeT<sm3> sm4;
+#define TEST(sm, s) std::cout << s << ": " << sm4.test(s) << std::endl;
+    TEST(sm4, "")
+    TEST(sm4, "ab")
+    TEST(sm4, "c")
+    TEST(sm4, "abc")
+    TEST(sm4, "abccc")
+    TEST(sm4, "b")
+    TEST(sm4, "a")
 
     return 0;
 }

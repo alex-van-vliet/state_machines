@@ -9,6 +9,7 @@ add_executable(state_machines
         dfa.hpp
         epsilon_nfa.hpp
         nfa.hpp
+        runtime_nfa.hpp
         state_list.hpp
         state_list_list.hpp
         states.hpp
