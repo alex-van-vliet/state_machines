@@ -8,7 +8,7 @@ using regex::Character, regex::CharacterRange, regex::star;
 
 constexpr auto non_null_digit = Character<'1'>{} | Character<'2'>{} | Character<'3'>{} | Character<'4'>{} | Character<'5'>{} | Character<'6'>{} | Character<'7'>{} | Character<'8'>{} | Character<'9'>{};
 constexpr auto digit = CharacterRange<'0', '9'>{};
-using sm1 = regex::ToStateMachineT<decltype((non_null_digit & star(digit)) | Character<'0'>{})>;// [0-9]+ = [0-9][0-9]*
+using sm1 = regex::ToStateMachineT<decltype((non_null_digit & star(digit)) | Character<'0'>{})>;
 using sm2 = nfa::EpsilonRemovalT<sm1>;
 using sm3 = dfa::DFAConversionT<sm2>;
 
