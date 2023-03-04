@@ -235,25 +235,32 @@ namespace helpers {
     using list_sort_t = typename list_sort<List, Key>::type;
 
     // As in the standard lib, unique removes *consecutive* duplicate elements
-    template<typename List>
+    // EqualityComparator must implement EqualityComparator::value<ValueA, ValueB> as constexpr bool
+    template<typename List, typename EqualityComparator>
     struct list_unique {
     };
 
-    template<typename Value, typename... Values>
-    struct list_unique<list<Value, Value, Values...>> {
-        using type = typename list_unique<list<Value, Values...>>::type;
+    template<typename ValueA, typename ValueB, typename... Values, typename EqualityComparator>
+    struct list_unique<list<ValueA, ValueB, Values...>, EqualityComparator> {
+        using type = decltype(([](){
+            if constexpr (EqualityComparator::template value<ValueA, ValueB>) {
+                return typename list_unique<list<ValueA, Values...>, EqualityComparator>::type{};
+            } else {
+                return list_push_front_t<typename list_unique<list<ValueB, Values...>, EqualityComparator>::type, ValueA>{};
+            }
+        })());
     };
 
-    template<typename Value, typename... Values>
-    struct list_unique<list<Value, Values...>> {
-        using type = list_push_front_t<typename list_unique<list<Values...>>::type, Value>;
+    template<typename Value, typename EqualityComparator>
+    struct list_unique<list<Value>, EqualityComparator> {
+        using type = list<Value>;
     };
 
-    template<>
-    struct list_unique<list<>> {
+    template<typename EqualityComparator>
+    struct list_unique<list<>, EqualityComparator> {
         using type = list<>;
     };
 
-    template<typename List>
-    using list_unique_t = typename list_unique<List>::type;
+    template<typename List, typename EqualityComparator>
+    using list_unique_t = typename list_unique<List, EqualityComparator>::type;
 }// namespace helpers

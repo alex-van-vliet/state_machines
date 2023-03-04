@@ -52,10 +52,14 @@ struct key {
 static_assert(std::is_same_v<helpers::list_sort_t<empty_list, key>, helpers::list<>>);
 static_assert(std::is_same_v<helpers::list_sort_t<my_list, key>, helpers::list<char, float, int32_t, int64_t>>);
 
-static_assert(std::is_same_v<helpers::list_unique_t<empty_list>, helpers::list<>>);
-static_assert(std::is_same_v<helpers::list_unique_t<my_list>, helpers::list<int64_t, float, char, int32_t>>);
-static_assert(std::is_same_v<helpers::list_unique_t<helpers::list<int, int, int>>, helpers::list<int>>);
-static_assert(std::is_same_v<helpers::list_unique_t<helpers::list<int, int, float, float, int, int, int>>, helpers::list<int, float, int>>);
+struct is_same {
+    template<typename ValueA, typename ValueB>
+    static constexpr bool value = std::is_same_v<ValueA, ValueB>;
+};
+static_assert(std::is_same_v<helpers::list_unique_t<empty_list, is_same>, helpers::list<>>);
+static_assert(std::is_same_v<helpers::list_unique_t<my_list, is_same>, helpers::list<int64_t, float, char, int32_t>>);
+static_assert(std::is_same_v<helpers::list_unique_t<helpers::list<int, int, int>, is_same>, helpers::list<int>>);
+static_assert(std::is_same_v<helpers::list_unique_t<helpers::list<int, int, float, float, int, int, int>, is_same>, helpers::list<int, float, int>>);
 
 
 struct Printer {
