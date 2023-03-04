@@ -54,7 +54,7 @@ namespace regex {
     };
 
     template<typename Operand>
-    class Star : public Token<Operand> {
+    class Star : public Token<Star<Operand>> {
         using operand = Operand;
     };
 
