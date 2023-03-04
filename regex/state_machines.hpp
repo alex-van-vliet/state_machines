@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <iostream>
 
+#include "helpers/map.hpp"
 #include "transitions.hpp"
 
 namespace regex {
@@ -166,4 +167,144 @@ namespace regex {
 
     template<typename StateMachine>
     using to_nfa_t = typename to_nfa<StateMachine>::type;
+
+    template<std::size_t StateCount, typename InitState, typename FinalStateList, typename TransitionList>
+    struct dfa {
+        static constexpr auto state_count = StateCount;
+        using init_state = InitState;
+        using final_state_list = FinalStateList;
+        using transition_list = TransitionList;
+
+        void draw() const {
+            std::cout << "digraph {\n";
+            std::cout << "    invisible [label=\"\", shape=none];\n";
+            for (size_t i = 0; i < state_count; ++i) {
+                std::cout << "    " << i << ";\n";
+            }
+            helpers::list_apply<final_state_list, draw_final_state>{}();
+            draw_init_state{}(init_state{});
+            helpers::list_apply<transition_list, draw_transition_entry>{}();
+            std::cout << "}" << std::endl;
+        }
+    };
+
+    namespace detail {
+        template<typename StateList>
+        using state_list_to_group = helpers::list_unique_t<helpers::list_sort_t<StateList, state_to_id>, state_equals>;
+
+        template<typename TransitionList>
+        struct to_dfa_group_by_transition {};
+
+        template<>
+        struct to_dfa_group_by_transition<helpers::list<>> {
+            using type = helpers::map<helpers::list<>>;
+        };
+
+        template<typename FromState, typename ToState, typename Transition, typename... TransitionEntries>
+        struct to_dfa_group_by_transition<helpers::list<transition_entry<FromState, ToState, Transition>, TransitionEntries...>> {
+            using next = to_dfa_group_by_transition<helpers::list<TransitionEntries...>>;
+
+            using type = decltype(([] {
+                using to_states = helpers::map_find_t<typename next::type, Transition>;
+                if constexpr (std::is_same_v<to_states, helpers::map_not_found>) {
+                    return helpers::map_insert_t<typename next::type, Transition, helpers::list<ToState>>{};
+                } else {
+                    return helpers::map_set_t<typename next::type, Transition, helpers::list_push_back_t<to_states, ToState>>{};
+                }
+            })());
+        };
+
+        struct to_dfa_map_state_list_to_group {
+            template<typename MapEntry>
+            using type = helpers::map_entry<typename MapEntry::key, state_list_to_group<typename MapEntry::value>>;
+        };
+
+        template<typename ConversionTable>
+        struct to_dfa_group_exists {
+            template<typename Group>
+            static constexpr bool value = helpers::map_contains_v<ConversionTable, Group>;
+        };
+
+        template<typename ConversionTable, typename GroupList>
+        struct to_dfa_add_groups_to_conversion_table {};
+
+        template<typename ConversionTable, typename Group, typename... Groups>
+        struct to_dfa_add_groups_to_conversion_table<ConversionTable, helpers::list<Group, Groups...>> {
+            using type = typename to_dfa_add_groups_to_conversion_table<
+                    helpers::map_insert_t<ConversionTable, Group, state<helpers::list_length_v<helpers::map_list_t<ConversionTable>>>>,
+                    helpers::list<Groups...>>::type;
+        };
+
+        template<typename ConversionTable>
+        struct to_dfa_add_groups_to_conversion_table<ConversionTable, helpers::list<>> {
+            using type = ConversionTable;
+        };
+
+        template<typename ConversionTable, typename FromState>
+        struct to_dfa_grouped_transitions_to_transition_list_mapper {
+            template<typename MapEntry>
+            using type = transition_entry<FromState, helpers::map_find_t<ConversionTable, typename MapEntry::value>, typename MapEntry::key>;
+        };
+
+        // The conversion table is a list<list<state>> where each inner list<state> is sorted
+        // The remaining state lists is the part of the conversion table that has not been treated yet
+        template<typename TransitionList, typename ConversionTable, typename RemainingGroupList>
+        struct to_dfa_generate_conversion_table {};
+
+        template<typename TransitionList, typename ConversionTable, typename CurrentGroup, typename... RemainingGroups>
+        struct to_dfa_generate_conversion_table<TransitionList, ConversionTable, helpers::list<CurrentGroup, RemainingGroups...>> {
+            using current_group_state = helpers::map_find_t<ConversionTable, CurrentGroup>;
+
+            using transitions = helpers::list_filter_t<TransitionList, filter_transition_entry_from<CurrentGroup>>;
+
+            using grouped_transitions = helpers::map<helpers::list_map_t<helpers::map_list_t<typename to_dfa_group_by_transition<transitions>::type>, to_dfa_map_state_list_to_group>>;
+
+            using new_groups = helpers::list_filter_t<helpers::map_values_t<grouped_transitions>, helpers::predicate_not<to_dfa_group_exists<ConversionTable>>>;
+
+            using new_conversion_table = typename detail::to_dfa_add_groups_to_conversion_table<ConversionTable, new_groups>::type;
+
+            using next = to_dfa_generate_conversion_table<TransitionList,
+                                                          new_conversion_table,
+                                                          helpers::list_concat_t<
+                                                                  helpers::list<RemainingGroups...>,
+                                                                  new_groups>>;
+
+            using type = typename next::type;
+
+            using transition_list_type = helpers::list_concat_t<
+                    helpers::list_map_t<helpers::map_list_t<grouped_transitions>, to_dfa_grouped_transitions_to_transition_list_mapper<new_conversion_table, current_group_state>>,
+                    typename next::transition_list_type>;
+            // Create the transitions
+        };
+
+        template<typename TransitionList, typename ConversionTable>
+        struct to_dfa_generate_conversion_table<TransitionList, ConversionTable, helpers::list<>> {
+            using type = ConversionTable;
+            using transition_list_type = helpers::list<>;
+        };
+
+        template<typename FinalStateList>
+        struct to_dfa_is_final {
+            template<typename MapEntry>
+            static constexpr bool value = !std::is_same_v<helpers::list_find_t<typename MapEntry::key, filter_state<FinalStateList>>, helpers::list_not_found>;
+        };
+    }// namespace detail
+
+    // Converts a nfa to a dfa
+    template<typename StateMachine>
+    struct to_dfa {
+        using conversion_table = detail::to_dfa_generate_conversion_table<
+                typename StateMachine::transition_list,
+                helpers::map<helpers::list<helpers::map_entry<detail::state_list_to_group<typename StateMachine::init_state_list>, state<0>>>>,
+                helpers::list<detail::state_list_to_group<typename StateMachine::init_state_list>>>;
+
+        using type = dfa<
+                helpers::list_length_v<helpers::map_list_t<typename conversion_table::type>>,
+                state<0>,
+                helpers::map_values_t<helpers::map<helpers::list_filter_t<helpers::map_list_t<typename conversion_table::type>, detail::to_dfa_is_final<typename StateMachine::final_state_list>>>>,
+                typename conversion_table::transition_list_type>;
+    };
+
+    template<typename StateMachine>
+    using to_dfa_t = typename to_dfa<StateMachine>::type;
 }// namespace regex

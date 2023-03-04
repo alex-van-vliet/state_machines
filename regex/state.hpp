@@ -22,4 +22,20 @@ namespace regex {
             std::cout << "    " << Id << " [shape=doublecircle];\n";
         }
     };
+
+    struct state_to_id {
+        template<typename Value>
+        static constexpr auto value = Value::id;
+    };
+
+    struct state_equals {
+        template<typename StateA, typename StateB>
+        static constexpr bool value = StateA::id == StateB::id;
+    };
+
+    template<typename StateList>
+    struct filter_state {
+        template<typename State>
+        static constexpr bool value = helpers::list_contains_v<StateList, State>;
+    };
 }// namespace regex
