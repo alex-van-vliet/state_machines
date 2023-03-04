@@ -221,7 +221,7 @@ namespace helpers {
         };
     }// namespace detail
 
-    // Key must implement Key::value<Value> as constexpr of the same signed type (U.B. otherwise)
+    // Key must implement Key::value<Value> as constexpr of the same type (U.B. otherwise)
     template<typename List, typename Key>
     struct list_sort {
         using list_with_keys = list_map_t<List, detail::list_sort_add_key<Key>>;
