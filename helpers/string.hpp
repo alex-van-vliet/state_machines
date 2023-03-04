@@ -40,7 +40,7 @@ namespace helpers {
     template<size_t N>
     string(const char (&s)[N]) -> string<N - 1>;
 
-    inline namespace literals {
+    namespace literals {
         template<helpers::string Str>
         constexpr auto operator""_s() {
             return Str;

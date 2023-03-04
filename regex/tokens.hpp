@@ -61,7 +61,7 @@ namespace regex {
     template<typename Operand>
     auto star(Operand) -> Star<Operand>;
 
-    inline namespace literals {
+    namespace literals {
         namespace detail {
             template<helpers::string Str, size_t I = 0>
                 requires(Str.size() > 0)
