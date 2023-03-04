@@ -23,34 +23,34 @@ static_assert(std::is_same_v<helpers::list_push_front_t<empty_list, bool>, helpe
 static_assert(std::is_same_v<helpers::list_push_front_t<my_list, bool>, helpers::list<bool, int64_t, float, char, int32_t>>);
 
 template<auto Value>
-struct Wrapper {};
+struct wrapper {};
 
-struct SizeOf {
+struct size_of {
     template<typename Value>
-    using type = Wrapper<sizeof(Value)>;
+    using type = wrapper<sizeof(Value)>;
 };
 
-static_assert(std::is_same_v<helpers::list_map_t<empty_list, SizeOf>, helpers::list<>>);
-static_assert(std::is_same_v<helpers::list_map_t<my_list, SizeOf>, helpers::list<Wrapper<sizeof(int64_t)>, Wrapper<sizeof(float)>, Wrapper<sizeof(char)>, Wrapper<sizeof(int32_t)>>>);
+static_assert(std::is_same_v<helpers::list_map_t<empty_list, size_of>, helpers::list<>>);
+static_assert(std::is_same_v<helpers::list_map_t<my_list, size_of>, helpers::list<wrapper<sizeof(int64_t)>, wrapper<sizeof(float)>, wrapper<sizeof(char)>, wrapper<sizeof(int32_t)>>>);
 
-struct Int32Or64 {
+struct int32_or_int64 {
     template<typename Value>
     static constexpr bool value = std::is_same_v<Value, int64_t> || std::is_same_v<Value, int32_t>;
 };
 
-static_assert(std::is_same_v<helpers::list_filter_t<empty_list, Int32Or64>, helpers::list<>>);
-static_assert(std::is_same_v<helpers::list_filter_t<my_list, Int32Or64>, helpers::list<int64_t, int32_t>>);
+static_assert(std::is_same_v<helpers::list_filter_t<empty_list, int32_or_int64>, helpers::list<>>);
+static_assert(std::is_same_v<helpers::list_filter_t<my_list, int32_or_int64>, helpers::list<int64_t, int32_t>>);
 
-static_assert(std::is_same_v<helpers::list_find_t<empty_list, Int32Or64>, helpers::list_find_not_found>);
-static_assert(std::is_same_v<helpers::list_find_t<my_list, Int32Or64>, int64_t>);
+static_assert(std::is_same_v<helpers::list_find_t<empty_list, int32_or_int64>, helpers::list_find_not_found>);
+static_assert(std::is_same_v<helpers::list_find_t<my_list, int32_or_int64>, int64_t>);
 
-struct Key {
+struct key {
     template<typename Value>
     static constexpr int value = sizeof(Value);
 };
 
-static_assert(std::is_same_v<helpers::list_sort_t<empty_list, Key>, helpers::list<>>);
-static_assert(std::is_same_v<helpers::list_sort_t<my_list, Key>, helpers::list<char, float, int32_t, int64_t>>);
+static_assert(std::is_same_v<helpers::list_sort_t<empty_list, key>, helpers::list<>>);
+static_assert(std::is_same_v<helpers::list_sort_t<my_list, key>, helpers::list<char, float, int32_t, int64_t>>);
 
 static_assert(std::is_same_v<helpers::list_unique_t<empty_list>, helpers::list<>>);
 static_assert(std::is_same_v<helpers::list_unique_t<my_list>, helpers::list<int64_t, float, char, int32_t>>);
