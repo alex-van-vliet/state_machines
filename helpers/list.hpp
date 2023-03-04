@@ -133,7 +133,7 @@ namespace helpers {
             if constexpr (Predicate::template value<Value>) {
                 return Value{};
             } else {
-                return typename list_filter<list<Values...>, Predicate>::type{};
+                return typename list_find<list<Values...>, Predicate>::type{};
             }
         })());
     };
