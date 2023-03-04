@@ -18,6 +18,7 @@ add_library(state_machines INTERFACE
         transitions.hpp
         types.hpp
         helpers/list.hpp
+        helpers/map.hpp
         helpers/string.hpp
         regex/tokens.hpp
         regex/state_machines.hpp
@@ -37,3 +38,6 @@ target_link_libraries(list PRIVATE state_machines)
 
 add_executable(string helpers/string.cpp)
 target_link_libraries(string PRIVATE state_machines)
+
+add_executable(map helpers/map.cpp)
+target_link_libraries(map PRIVATE state_machines)
