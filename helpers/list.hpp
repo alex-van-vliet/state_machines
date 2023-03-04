@@ -157,6 +157,35 @@ namespace helpers {
     template<typename List, typename Search>
     constexpr auto list_contains_v = list_contains<List, Search>::value;
 
+    template<typename List, typename Search>
+    struct list_remove {};
+
+    template<typename... Values, typename Search>
+    struct list_remove<list<Search, Values...>, Search> {
+        using type = list<Values...>;
+        using result_type = Search;
+    };
+
+    template<typename Value, typename... Values, typename Search>
+    struct list_remove<list<Value, Values...>, Search> {
+        using next = list_remove<list<Values...>, Search>;
+
+        using type = list_push_front_t<typename next::type, Value>;
+        using result_type = typename next::result_type;
+    };
+
+    template<typename Search>
+    struct list_remove<list<>, Search> {
+        using type = list<>;
+        using result_type = list_not_found;
+    };
+
+    template<typename List, typename Search>
+    using list_remove_t = typename list_remove<List, Search>::type;
+
+    template<typename List, typename Search>
+    using list_remove_result_t = typename list_remove<List, Search>::result_type;
+
     namespace detail {
         template<typename Value, auto Key>
         struct list_sort_vk_pair {

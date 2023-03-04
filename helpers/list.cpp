@@ -44,6 +44,16 @@ static_assert(std::is_same_v<helpers::list_filter_t<my_list, int32_or_int64>, he
 static_assert(std::is_same_v<helpers::list_find_t<empty_list, int32_or_int64>, helpers::list_not_found>);
 static_assert(std::is_same_v<helpers::list_find_t<my_list, int32_or_int64>, int64_t>);
 
+static_assert(std::is_same_v<helpers::list_remove_t<empty_list, int64_t>, helpers::list<>>);
+static_assert(std::is_same_v<helpers::list_remove_t<my_list, int64_t>, helpers::list<float, char, int32_t>>);
+static_assert(std::is_same_v<helpers::list_remove_t<my_list, char>, helpers::list<int64_t, float, int32_t>>);
+static_assert(std::is_same_v<helpers::list_remove_t<my_list, int16_t>, helpers::list<int64_t, float, char, int32_t>>);
+
+static_assert(std::is_same_v<helpers::list_remove_result_t<empty_list, int64_t>, helpers::list_not_found>);
+static_assert(std::is_same_v<helpers::list_remove_result_t<my_list, int64_t>, int64_t>);
+static_assert(std::is_same_v<helpers::list_remove_result_t<my_list, char>, char>);
+static_assert(std::is_same_v<helpers::list_remove_result_t<my_list, int16_t>, helpers::list_not_found>);
+
 struct key {
     template<typename Value>
     static constexpr int value = sizeof(Value);
