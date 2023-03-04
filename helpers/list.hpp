@@ -100,6 +100,27 @@ namespace helpers {
     template<typename List, typename Predicate>
     using list_filter_t = typename list_filter<List, Predicate>::type;
 
+    template<typename Predicate>
+    struct predicate_not
+    {
+        template<typename Value>
+        static constexpr bool value = !Predicate::template value<Value>;
+    };
+
+    template<typename... Predicates>
+    struct predicate_or
+    {
+        template<typename Value>
+        static constexpr bool value = (Predicates::template value<Value> || ...);
+    };
+
+    template<typename... Predicates>
+    struct predicate_and
+    {
+        template<typename Value>
+        static constexpr bool value = (Predicates::template value<Value> &&...);
+    };
+
     // Predicate must implement Predicate::value<Value>
     template<typename List, typename Predicate>
     struct list_find {};
