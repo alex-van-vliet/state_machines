@@ -41,7 +41,7 @@ struct int32_or_int64 {
 static_assert(std::is_same_v<helpers::list_filter_t<empty_list, int32_or_int64>, helpers::list<>>);
 static_assert(std::is_same_v<helpers::list_filter_t<my_list, int32_or_int64>, helpers::list<int64_t, int32_t>>);
 
-static_assert(std::is_same_v<helpers::list_find_t<empty_list, int32_or_int64>, helpers::list_find_not_found>);
+static_assert(std::is_same_v<helpers::list_find_t<empty_list, int32_or_int64>, helpers::list_not_found>);
 static_assert(std::is_same_v<helpers::list_find_t<my_list, int32_or_int64>, int64_t>);
 
 struct key {

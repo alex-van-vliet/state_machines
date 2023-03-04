@@ -12,6 +12,8 @@ namespace helpers {
         static constexpr std::size_t length = sizeof...(Values);
     };
 
+    struct list_not_found {};
+
     template<typename List>
     struct list_length {
         static constexpr auto value = List::length;
@@ -125,8 +127,6 @@ namespace helpers {
     template<typename List, typename Predicate>
     struct list_find {};
 
-    struct list_find_not_found {};
-
     template<typename Value, typename... Values, typename Predicate>
     struct list_find<list<Value, Values...>, Predicate> {
         using type = decltype(([] {
@@ -140,7 +140,7 @@ namespace helpers {
 
     template<typename Predicate>
     struct list_find<list<>, Predicate> {
-        using type = list_find_not_found;
+        using type = list_not_found;
     };
 
     template<typename List, typename Predicate>
