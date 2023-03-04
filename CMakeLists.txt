@@ -20,6 +20,7 @@ add_library(state_machines INTERFACE
         helpers/list.hpp
         helpers/string.hpp
         )
+target_include_directories(state_machines INTERFACE .)
 
 add_executable(main main.cpp)
 target_link_libraries(main PRIVATE state_machines)
