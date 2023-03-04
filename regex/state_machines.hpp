@@ -307,4 +307,25 @@ namespace regex {
 
     template<typename StateMachine>
     using to_dfa_t = typename to_dfa<StateMachine>::type;
+
+    template<typename StateMachine, helpers::string String, size_t Pos = 0, typename State = typename StateMachine::init_state>
+    struct test {
+        static constexpr bool value = ([]{
+            if constexpr (Pos == String.size()) {
+                return helpers::list_contains_v<typename StateMachine::final_state_list, State>;
+            } else {
+                using transition =
+                        helpers::list_find_t<typename StateMachine::transition_list, helpers::predicate_and<filter_transition_entry_from<helpers::list<State>>,
+                                                                                                            filter_transition_entry_transition<helpers::list<character_transition<String.at(Pos)>>>>>;
+                if constexpr (std::is_same_v<transition, helpers::list_not_found>) {
+                    return false;
+                } else {
+                    return test<StateMachine, String, Pos + 1, typename transition::to_state>::value;
+                }
+            }
+        })();
+    };
+
+    template<typename StateMachine, helpers::string String>
+    constexpr auto test_v = test<StateMachine, String>::value;
 }// namespace regex
