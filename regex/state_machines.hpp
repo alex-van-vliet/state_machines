@@ -2,6 +2,10 @@
 
 #include <cstddef>
 #include <iostream>
+#include <string_view>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 #include "helpers/map.hpp"
 #include "transitions.hpp"
@@ -328,4 +332,34 @@ namespace regex {
 
     template<typename StateMachine, helpers::string String>
     constexpr auto test_v = test<StateMachine, String>::value;
+
+
+    template<typename StateMachine>
+    struct runtime;
+
+    template<size_t StateCount, typename InitState, typename... FinalStates, typename... Transitions>
+    struct runtime<dfa<StateCount, InitState, helpers::list<FinalStates...>, helpers::list<Transitions...>>> {
+        std::unordered_set<size_t> final_states;
+        std::array<std::unordered_map<char, size_t>, StateCount> transitions;
+
+        runtime() : final_states{{FinalStates::id}...}, transitions{} {
+            ((void) transitions[Transitions::from_state::id].insert({Transitions::transition::value, Transitions::to_state::id}), ...);
+        }
+
+        bool test(std::string_view str) const {
+            size_t state = InitState::id;
+
+            for (auto c: str) {
+                auto next = transitions[state].find(c);
+
+                if (next == transitions[state].end()) {
+                    return false;
+                }
+
+                state = next->second;
+            }
+
+            return final_states.contains(state);
+        }
+    };
 }// namespace regex
