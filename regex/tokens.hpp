@@ -106,7 +106,12 @@ namespace regex {
 
     template<char FromValue, char ToValue>
     struct to_state_machine<CharacterRange<FromValue, ToValue>> {
-        using type = epsilon_nfa<2, state<0>, state<1>, decltype(detail::to_state_machine_character_range<FromValue>(std::make_integer_sequence<char, ToValue - FromValue + 1>{}))>;
+        using type = typename to_state_machine<Union<Character<FromValue>, CharacterRange<FromValue + 1, ToValue>>>::type;
+    };
+
+    template<char Value>
+    struct to_state_machine<CharacterRange<Value, Value>> {
+        using type = typename to_state_machine<Character<Value>>::type;
     };
 
     template<typename LeftOperand, typename RightOperand>
