@@ -19,11 +19,18 @@ add_library(state_machines INTERFACE
         types.hpp
         helpers/list.hpp
         helpers/string.hpp
+        regex/tokens.hpp
+        regex/state_machines.hpp
+        regex/state.hpp
+        regex/transitions.hpp
         )
 target_include_directories(state_machines INTERFACE .)
 
 add_executable(main main.cpp)
 target_link_libraries(main PRIVATE state_machines)
+
+add_executable(main2 main2.cpp)
+target_link_libraries(main2 PRIVATE state_machines)
 
 add_executable(list helpers/list.cpp)
 target_link_libraries(list PRIVATE state_machines)
