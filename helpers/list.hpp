@@ -20,16 +20,26 @@ namespace helpers {
     template<typename List>
     constexpr auto list_length_v = list_length<List>::value;
 
-    template<typename ListA, typename ListB>
+    template<typename... Lists>
     struct list_concat {};
 
-    template<typename... ValuesA, typename... ValuesB>
-    struct list_concat<list<ValuesA...>, list<ValuesB...>> {
-        using type = list<ValuesA..., ValuesB...>;
+    template<typename... ValuesA, typename... ValuesB, typename... Lists>
+    struct list_concat<list<ValuesA...>, list<ValuesB...>, Lists...> {
+        using type = typename list_concat<list<ValuesA..., ValuesB...>, Lists...>::type;
     };
 
-    template<typename ListA, typename ListB>
-    using list_concat_t = typename list_concat<ListA, ListB>::type;
+    template<typename List>
+    struct list_concat<List> {
+        using type = List;
+    };
+
+    template<>
+    struct list_concat<list<>> {
+        using type = list<>;
+    };
+
+    template<typename... Lists>
+    using list_concat_t = typename list_concat<Lists...>::type;
 
     template<typename List, typename... PushValues>
     struct list_push_back {

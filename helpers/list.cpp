@@ -13,6 +13,8 @@ static_assert(helpers::list_contains_v<my_list, int64_t> == true);
 static_assert(helpers::list_contains_v<my_list, bool> == false);
 
 static_assert(std::is_same_v<helpers::list_concat_t<my_list, helpers::list<bool, float>>, helpers::list<int64_t, float, char, int32_t, bool, float>>);
+static_assert(std::is_same_v<helpers::list_concat_t<my_list, helpers::list<bool, float>, helpers::list<int16_t>>, helpers::list<int64_t, float, char, int32_t, bool, float, int16_t>>);
+static_assert(std::is_same_v<helpers::list_concat_t<empty_list, my_list, empty_list, helpers::list<bool, float>, empty_list>, helpers::list<int64_t, float, char, int32_t, bool, float>>);
 
 static_assert(std::is_same_v<helpers::list_push_back_t<empty_list, bool>, helpers::list<bool>>);
 static_assert(std::is_same_v<helpers::list_push_back_t<my_list, bool>, helpers::list<int64_t, float, char, int32_t, bool>>);
