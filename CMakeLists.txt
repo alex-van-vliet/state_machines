@@ -18,6 +18,7 @@ add_library(state_machines INTERFACE
         transitions.hpp
         types.hpp
         helpers/list.hpp
+        helpers/string.hpp
         )
 
 add_executable(main main.cpp)
@@ -25,3 +26,6 @@ target_link_libraries(main PRIVATE state_machines)
 
 add_executable(list helpers/list.cpp)
 target_link_libraries(list PRIVATE state_machines)
+
+add_executable(string helpers/string.cpp)
+target_link_libraries(string PRIVATE state_machines)
