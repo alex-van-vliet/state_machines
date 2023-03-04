@@ -129,13 +129,12 @@ namespace regex {
                 state<final_state>,
                 helpers::list_concat_t<
                         typename left_state_machine::transition_list,
-                        helpers::list_map_t<typename right_state_machine::transition_list, offset_transition<left_state_machine::state_count>>,
+                        helpers::list_map_t<typename right_state_machine::transition_list, offset_transition_entry<left_state_machine::state_count>>,
                         helpers::list<
                                 transition_entry<state<init_state>, state<left_state_machine::init_state::id>, epsilon_transition>,
                                 transition_entry<state<init_state>, state<right_state_machine::init_state::id + left_state_machine::state_count>, epsilon_transition>,
                                 transition_entry<state<left_state_machine::final_state::id>, state<final_state>, epsilon_transition>,
-                                transition_entry<state<right_state_machine::final_state::id + left_state_machine::state_count>, state<final_state>, epsilon_transition>
-                                >>>;
+                                transition_entry<state<right_state_machine::final_state::id + left_state_machine::state_count>, state<final_state>, epsilon_transition>>>>;
     };
 
     template<typename LeftOperand, typename RightOperand>
@@ -153,10 +152,9 @@ namespace regex {
                 state<final_state>,
                 helpers::list_concat_t<
                         typename left_state_machine::transition_list,
-                        helpers::list_map_t<typename right_state_machine::transition_list, offset_transition<left_state_machine::state_count>>,
+                        helpers::list_map_t<typename right_state_machine::transition_list, offset_transition_entry<left_state_machine::state_count>>,
                         helpers::list<
-                                transition_entry<state<left_state_machine::final_state::id>, state<right_state_machine::init_state::id + left_state_machine::state_count>, epsilon_transition>
-                                >>>;
+                                transition_entry<state<left_state_machine::final_state::id>, state<right_state_machine::init_state::id + left_state_machine::state_count>, epsilon_transition>>>>;
     };
 
     template<typename Operand>
@@ -177,8 +175,7 @@ namespace regex {
                                 transition_entry<state<init_state>, state<state_machine::init_state::id>, epsilon_transition>,
                                 transition_entry<state<state_machine::final_state::id>, state<final_state>, epsilon_transition>,
                                 transition_entry<state<init_state>, state<final_state>, epsilon_transition>,
-                                transition_entry<state<state_machine::final_state::id>, state<state_machine::init_state::id>, epsilon_transition>
-                                >>>;
+                                transition_entry<state<state_machine::final_state::id>, state<state_machine::init_state::id>, epsilon_transition>>>>;
     };
 
     template<typename Token>
