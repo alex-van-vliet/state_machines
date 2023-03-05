@@ -292,6 +292,51 @@ namespace helpers {
     template<typename List, typename Key>
     using list_sort_t = typename list_sort<List, Key>::type;
 
+    namespace detail {
+        template<typename ListWithKeys, auto RunningMinValue>
+        struct list_sort_find_min {
+            using pair = list_sort_vk_pair<typename ListWithKeys::value::value, ListWithKeys::value::key>;
+
+            using rec = list_sort_find_min<typename ListWithKeys::next, std::min(ListWithKeys::value::key, RunningMinValue)>;
+
+            static constexpr auto value = rec::value;
+            using type = std::conditional_t<value == ListWithKeys::value::key, pair, typename rec::type>;
+            using residual_type = std::conditional_t<value == ListWithKeys::value::key, typename rec::residual_type, list_node<pair, typename rec::residual_type>>;
+        };
+
+        template<auto RunningMinValue>
+        struct list_sort_find_min<list_end, RunningMinValue> {
+            static constexpr auto value = RunningMinValue;
+            using type = list_not_found;
+            using residual_type = list_end;
+        };
+
+        template<typename ListWithKeys>
+        struct list_unique_sort_impl {
+            using mins = list_sort_find_min<ListWithKeys, list_sort_min_init<ListWithKeys>::value>;
+
+            using type = list_node<typename mins::type, typename list_unique_sort_impl<typename mins::residual_type>::type>;
+        };
+
+        template<>
+        struct list_unique_sort_impl<list_end> {
+            using type = list_end;
+        };
+    }// namespace detail
+
+    // Key must implement Key::value<Value> as constexpr of the same type (U.B. otherwise)
+    template<typename List, typename Key>
+    struct list_unique_sort {
+        using list_with_keys = list_map_t<List, detail::list_sort_add_key<Key>>;
+
+        using sorted_list_with_keys = typename detail::list_unique_sort_impl<list_with_keys>::type;
+
+        using type = list_map_t<sorted_list_with_keys, detail::list_sort_remove_key>;
+    };
+
+    template<typename List, typename Key>
+    using list_unique_sort_t = typename list_unique_sort<List, Key>::type;
+
     // As in the standard lib, unique removes *consecutive* duplicate elements
     // EqualityComparator must implement EqualityComparator::value<ValueA, ValueB> as constexpr bool
     template<typename List, typename EqualityComparator>

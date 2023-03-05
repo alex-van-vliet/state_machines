@@ -62,6 +62,9 @@ struct key {
 static_assert(std::is_same_v<helpers::list_sort_t<empty_list, key>, helpers::list_construct_t<>>);
 static_assert(std::is_same_v<helpers::list_sort_t<my_list, key>, helpers::list_construct_t<char, float, int32_t, int64_t>>);
 
+static_assert(std::is_same_v<helpers::list_unique_sort_t<empty_list, key>, helpers::list_construct_t<>>);
+static_assert(std::is_same_v<helpers::list_unique_sort_t<my_list, key>, helpers::list_construct_t<char, float, int64_t>>);
+
 struct is_same {
     template<typename ValueA, typename ValueB>
     static constexpr bool value = std::is_same_v<ValueA, ValueB>;

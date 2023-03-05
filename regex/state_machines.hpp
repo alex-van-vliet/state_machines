@@ -194,7 +194,7 @@ namespace regex {
 
     namespace detail {
         template<typename StateList>
-        using state_list_to_group = helpers::list_unique_t<helpers::list_sort_t<StateList, state_to_id>, state_equals>;
+        using state_list_to_group = helpers::list_unique_sort_t<StateList, state_to_id>;
 
         template<typename TransitionList>
         struct to_dfa_group_by_transition {};
