@@ -51,7 +51,7 @@ namespace helpers {
 
     template<typename List, typename... Lists>
     struct list_concat<List, Lists...> {
-        using type = decltype(([]{
+        using type = decltype(([] {
             if constexpr (std::is_same_v<List, list_end>) {
                 return typename list_concat<Lists...>::type{};
             } else {
