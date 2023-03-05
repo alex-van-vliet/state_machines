@@ -138,6 +138,37 @@ namespace helpers {
     template<typename List, typename Predicate>
     using list_filter_t = typename list_filter<List, Predicate>::type;
 
+    // Predicate must implement Predicate::value<Value>
+    template<typename List, typename Predicate>
+    struct list_split {
+        using true_type = decltype(([] {
+            if constexpr (Predicate::template value<typename List::value>) {
+                return list_node<typename List::value, typename list_split<typename List::next, Predicate>::true_type>{};
+            } else {
+                return typename list_split<typename List::next, Predicate>::true_type{};
+            }
+        })());
+        using false_type = decltype(([] {
+            if constexpr (!Predicate::template value<typename List::value>) {
+                return list_node<typename List::value, typename list_split<typename List::next, Predicate>::false_type>{};
+            } else {
+                return typename list_split<typename List::next, Predicate>::false_type{};
+            }
+        })());
+    };
+
+    template<typename Predicate>
+    struct list_split<list_end, Predicate> {
+        using true_type = list_end;
+        using false_type = list_end;
+    };
+
+    template<typename List, typename Predicate>
+    using list_split_true_t = typename list_split<List, Predicate>::true_type;
+
+    template<typename List, typename Predicate>
+    using list_split_false_t = typename list_split<List, Predicate>::false_type;
+
     template<typename Predicate>
     struct predicate_not {
         template<typename Value>
