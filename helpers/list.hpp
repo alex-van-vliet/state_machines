@@ -7,12 +7,36 @@
 #include <type_traits>
 
 namespace helpers {
-    template<typename... Values>
-    struct list {
-        static constexpr std::size_t length = sizeof...(Values);
+    template<typename Value, typename Next>
+    struct list_node {
+        using value = Value;
+        using next = Next;
+
+        static constexpr std::size_t length = 1 + Next::length;
+    };
+
+    struct list_end {
+        static constexpr std::size_t length = 0;
     };
 
     struct list_not_found {};
+
+    template<typename... Values>
+    struct list_construct {
+    };
+
+    template<typename Value, typename... Values>
+    struct list_construct<Value, Values...> {
+        using type = list_node<Value, typename list_construct<Values...>::type>;
+    };
+
+    template<>
+    struct list_construct<> {
+        using type = list_end;
+    };
+
+    template<typename... Values>
+    using list_construct_t = typename list_construct<Values...>::type;
 
     template<typename List>
     struct list_length {
@@ -25,9 +49,15 @@ namespace helpers {
     template<typename... Lists>
     struct list_concat {};
 
-    template<typename... ValuesA, typename... ValuesB, typename... Lists>
-    struct list_concat<list<ValuesA...>, list<ValuesB...>, Lists...> {
-        using type = typename list_concat<list<ValuesA..., ValuesB...>, Lists...>::type;
+    template<typename List, typename... Lists>
+    struct list_concat<List, Lists...> {
+        using type = decltype(([]{
+            if constexpr (std::is_same_v<List, list_end>) {
+                return typename list_concat<Lists...>::type{};
+            } else {
+                return list_node<typename List::value, typename list_concat<typename List::next, Lists...>::type>{};
+            }
+        })());
     };
 
     template<typename List>
@@ -36,8 +66,8 @@ namespace helpers {
     };
 
     template<>
-    struct list_concat<list<>> {
-        using type = list<>;
+    struct list_concat<> {
+        using type = list_end;
     };
 
     template<typename... Lists>
@@ -45,7 +75,7 @@ namespace helpers {
 
     template<typename List, typename... PushValues>
     struct list_push_back {
-        using type = list_concat_t<List, list<PushValues...>>;
+        using type = list_concat_t<List, list_construct_t<PushValues...>>;
     };
 
     template<typename List, typename... PushValues>
@@ -53,7 +83,7 @@ namespace helpers {
 
     template<typename List, typename... PushValues>
     struct list_push_front {
-        using type = list_concat_t<list<PushValues...>, List>;
+        using type = list_concat_t<list_construct_t<PushValues...>, List>;
     };
 
     template<typename List, typename... PushValues>
@@ -61,22 +91,28 @@ namespace helpers {
 
     // Functor must implement Functor{}(Value)
     template<typename List, typename Functor>
-    struct list_apply {};
-
-    template<typename... Values, typename Functor>
-    struct list_apply<list<Values...>, Functor> {
+    struct list_apply {
         void operator()() const {
-            ((void) Functor{}(Values{}), ...);
+            Functor{}(typename List::value{});
+            list_apply<typename List::next, Functor>{}();
         }
+    };
+
+    template<typename Functor>
+    struct list_apply<list_end, Functor> {
+        void operator()() const {}
     };
 
     // Mapping must implement Mapping::type<Value>
     template<typename List, typename Mapping>
-    struct list_map {};
+    struct list_map {
+        using type = list_node<typename Mapping::template type<typename List::value>,
+                               typename list_map<typename List::next, Mapping>::type>;
+    };
 
-    template<typename... Values, typename Mapping>
-    struct list_map<list<Values...>, Mapping> {
-        using type = list<typename Mapping::template type<Values>...>;
+    template<typename Mapping>
+    struct list_map<list_end, Mapping> {
+        using type = list_end;
     };
 
     template<typename List, typename Mapping>
@@ -84,62 +120,56 @@ namespace helpers {
 
     // Predicate must implement Predicate::value<Value>
     template<typename List, typename Predicate>
-    struct list_filter {};
-
-    template<typename Value, typename... Values, typename Predicate>
-    struct list_filter<list<Value, Values...>, Predicate> {
-        using type = std::conditional_t<
-                Predicate::template value<Value>,
-                list_push_front_t<typename list_filter<list<Values...>, Predicate>::type, Value>,
-                typename list_filter<list<Values...>, Predicate>::type>;
+    struct list_filter {
+        using type = decltype(([] {
+            if constexpr (Predicate::template value<typename List::value>) {
+                return list_node<typename List::value, typename list_filter<typename List::next, Predicate>::type>{};
+            } else {
+                return typename list_filter<typename List::next, Predicate>::type{};
+            }
+        })());
     };
 
     template<typename Predicate>
-    struct list_filter<list<>, Predicate> {
-        using type = list<>;
+    struct list_filter<list_end, Predicate> {
+        using type = list_end;
     };
 
     template<typename List, typename Predicate>
     using list_filter_t = typename list_filter<List, Predicate>::type;
 
     template<typename Predicate>
-    struct predicate_not
-    {
+    struct predicate_not {
         template<typename Value>
         static constexpr bool value = !Predicate::template value<Value>;
     };
 
     template<typename... Predicates>
-    struct predicate_or
-    {
+    struct predicate_or {
         template<typename Value>
         static constexpr bool value = (Predicates::template value<Value> || ...);
     };
 
     template<typename... Predicates>
-    struct predicate_and
-    {
+    struct predicate_and {
         template<typename Value>
-        static constexpr bool value = (Predicates::template value<Value> &&...);
+        static constexpr bool value = (Predicates::template value<Value> && ...);
     };
 
     // Predicate must implement Predicate::value<Value>
     template<typename List, typename Predicate>
-    struct list_find {};
-
-    template<typename Value, typename... Values, typename Predicate>
-    struct list_find<list<Value, Values...>, Predicate> {
+    struct list_find {
         using type = decltype(([] {
-            if constexpr (Predicate::template value<Value>) {
-                return Value{};
+            if constexpr (Predicate::template value<typename List::value>) {
+                return typename List::value{};
             } else {
-                return typename list_find<list<Values...>, Predicate>::type{};
+                return typename list_find<typename List::next, Predicate>::type{};
             }
         })());
     };
 
     template<typename Predicate>
-    struct list_find<list<>, Predicate> {
+    struct list_find<list_end, Predicate> {
         using type = list_not_found;
     };
 
@@ -147,36 +177,40 @@ namespace helpers {
     using list_find_t = typename list_find<List, Predicate>::type;
 
     template<typename List, typename Search>
-    struct list_contains {};
+    struct list_contains {
+        static constexpr bool value = list_contains<typename List::next, Search>::value;
+    };
 
-    template<typename... Values, typename Search>
-    struct list_contains<list<Values...>, Search> {
-        static constexpr bool value = (std::is_same_v<Values, Search> || ...);
+    template<typename List, typename Search>
+    struct list_contains<list_node<Search, List>, Search> {
+        static constexpr bool value = true;
+    };
+
+    template<typename Search>
+    struct list_contains<list_end, Search> {
+        static constexpr bool value = false;
     };
 
     template<typename List, typename Search>
     constexpr auto list_contains_v = list_contains<List, Search>::value;
 
     template<typename List, typename Search>
-    struct list_remove {};
+    struct list_remove {
+        using next = list_remove<typename List::next, Search>;
 
-    template<typename... Values, typename Search>
-    struct list_remove<list<Search, Values...>, Search> {
-        using type = list<Values...>;
-        using result_type = Search;
-    };
-
-    template<typename Value, typename... Values, typename Search>
-    struct list_remove<list<Value, Values...>, Search> {
-        using next = list_remove<list<Values...>, Search>;
-
-        using type = list_push_front_t<typename next::type, Value>;
+        using type = list_node<typename List::value, typename next::type>;
         using result_type = typename next::result_type;
     };
 
+    template<typename List, typename Search>
+    struct list_remove<list_node<Search, List>, Search> {
+        using type = List;
+        using result_type = Search;
+    };
+
     template<typename Search>
-    struct list_remove<list<>, Search> {
-        using type = list<>;
+    struct list_remove<list_end, Search> {
+        using type = list_end;
         using result_type = list_not_found;
     };
 
@@ -190,6 +224,7 @@ namespace helpers {
         template<typename Value, auto Key>
         struct list_sort_vk_pair {
             using value = Value;
+            static constexpr auto key = Key;
         };
 
         template<typename Key>
@@ -204,36 +239,30 @@ namespace helpers {
         };
 
         template<typename ListWithKeys, auto RunningMinValue>
-        struct list_sort_find_mins {};
+        struct list_sort_find_mins {
+            using pair = list_sort_vk_pair<typename ListWithKeys::value::value, ListWithKeys::value::key>;
 
-        template<typename Value, auto Key, typename... ValueKeyPairs, auto RunningMinValue>
-        struct list_sort_find_mins<list<list_sort_vk_pair<Value, Key>, ValueKeyPairs...>, RunningMinValue> {
-            using pair = list_sort_vk_pair<Value, Key>;
-
-            using rec = list_sort_find_mins<list<ValueKeyPairs...>, std::min(Key, RunningMinValue)>;
+            using rec = list_sort_find_mins<typename ListWithKeys::next, std::min(ListWithKeys::value::key, RunningMinValue)>;
 
             static constexpr auto value = rec::value;
-            using type = std::conditional_t<value == Key, list_push_front_t<typename rec::type, pair>, typename rec::type>;
-            using residual_type = std::conditional_t<value == Key, typename rec::residual_type, list_push_front_t<typename rec::residual_type, pair>>;
+            using type = std::conditional_t<value == ListWithKeys::value::key, list_node<pair, typename rec::type>, typename rec::type>;
+            using residual_type = std::conditional_t<value == ListWithKeys::value::key, typename rec::residual_type, list_node<pair, typename rec::residual_type>>;
         };
 
         template<auto RunningMinValue>
-        struct list_sort_find_mins<list<>, RunningMinValue> {
+        struct list_sort_find_mins<list_end, RunningMinValue> {
             static constexpr auto value = RunningMinValue;
-            using type = list<>;
-            using residual_type = list<>;
+            using type = list_end;
+            using residual_type = list_end;
         };
 
         template<typename ListWithKeys>
-        struct list_sort_min_init {};
-
-        template<typename Value, auto Key, typename... ValueKeyPairs>
-        struct list_sort_min_init<list<list_sort_vk_pair<Value, Key>, ValueKeyPairs...>> {
+        struct list_sort_min_init {
             static constexpr auto value = ([] {
-                if constexpr (std::numeric_limits<decltype(Key)>::has_infinity) {
-                    return std::numeric_limits<decltype(Key)>::infinity();
+                if constexpr (std::numeric_limits<decltype(ListWithKeys::value::key)>::has_infinity) {
+                    return std::numeric_limits<decltype(ListWithKeys::value::key)>::infinity();
                 }
-                return std::numeric_limits<decltype(Key)>::max();
+                return std::numeric_limits<decltype(ListWithKeys::value::key)>::max();
             })();
         };
 
@@ -245,8 +274,8 @@ namespace helpers {
         };
 
         template<>
-        struct list_sort_impl<list<>> {
-            using type = list<>;
+        struct list_sort_impl<list_end> {
+            using type = list_end;
         };
     }// namespace detail
 
@@ -269,25 +298,25 @@ namespace helpers {
     struct list_unique {
     };
 
-    template<typename ValueA, typename ValueB, typename... Values, typename EqualityComparator>
-    struct list_unique<list<ValueA, ValueB, Values...>, EqualityComparator> {
-        using type = decltype(([](){
+    template<typename ValueA, typename ValueB, typename Next, typename EqualityComparator>
+    struct list_unique<list_node<ValueA, list_node<ValueB, Next>>, EqualityComparator> {
+        using type = decltype(([]() {
             if constexpr (EqualityComparator::template value<ValueA, ValueB>) {
-                return typename list_unique<list<ValueA, Values...>, EqualityComparator>::type{};
+                return typename list_unique<list_node<ValueB, Next>, EqualityComparator>::type{};
             } else {
-                return list_push_front_t<typename list_unique<list<ValueB, Values...>, EqualityComparator>::type, ValueA>{};
+                return list_node<ValueA, typename list_unique<list_node<ValueB, Next>, EqualityComparator>::type>{};
             }
         })());
     };
 
     template<typename Value, typename EqualityComparator>
-    struct list_unique<list<Value>, EqualityComparator> {
-        using type = list<Value>;
+    struct list_unique<list_node<Value, list_end>, EqualityComparator> {
+        using type = list_node<Value, list_end>;
     };
 
     template<typename EqualityComparator>
-    struct list_unique<list<>, EqualityComparator> {
-        using type = list<>;
+    struct list_unique<list_end, EqualityComparator> {
+        using type = list_end;
     };
 
     template<typename List, typename EqualityComparator>

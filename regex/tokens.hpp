@@ -95,13 +95,13 @@ namespace regex {
     template<char Value>
     struct to_state_machine<Character<Value>> {
         using type = epsilon_nfa<2, state<0>, state<1>,
-                                 helpers::list<transition_entry<state<0>, state<1>, character_transition<Value>>>>;
+                                 helpers::list_construct_t<transition_entry<state<0>, state<1>, character_transition<Value>>>>;
     };
 
     namespace detail {
         template<char FromValue, char... Values>
         auto to_state_machine_character_range(std::integer_sequence<char, Values...>)
-                -> helpers::list<transition_entry<state<0>, state<1>, character_transition<FromValue + Values>>...>;
+                -> helpers::list_construct_t<transition_entry<state<0>, state<1>, character_transition<FromValue + Values>>...>;
     }
 
     template<char FromValue, char ToValue>
@@ -130,7 +130,7 @@ namespace regex {
                 helpers::list_concat_t<
                         typename left_state_machine::transition_list,
                         helpers::list_map_t<typename right_state_machine::transition_list, offset_transition_entry<left_state_machine::state_count>>,
-                        helpers::list<
+                        helpers::list_construct_t<
                                 transition_entry<state<init_state>, state<left_state_machine::init_state::id>, epsilon_transition>,
                                 transition_entry<state<init_state>, state<right_state_machine::init_state::id + left_state_machine::state_count>, epsilon_transition>,
                                 transition_entry<state<left_state_machine::final_state::id>, state<final_state>, epsilon_transition>,
@@ -153,7 +153,7 @@ namespace regex {
                 helpers::list_concat_t<
                         typename left_state_machine::transition_list,
                         helpers::list_map_t<typename right_state_machine::transition_list, offset_transition_entry<left_state_machine::state_count>>,
-                        helpers::list<
+                        helpers::list_construct_t<
                                 transition_entry<state<left_state_machine::final_state::id>, state<right_state_machine::init_state::id + left_state_machine::state_count>, epsilon_transition>>>>;
     };
 
@@ -171,7 +171,7 @@ namespace regex {
                 state<final_state>,
                 helpers::list_concat_t<
                         typename state_machine::transition_list,
-                        helpers::list<
+                        helpers::list_construct_t<
                                 transition_entry<state<init_state>, state<state_machine::init_state::id>, epsilon_transition>,
                                 transition_entry<state<state_machine::final_state::id>, state<final_state>, epsilon_transition>,
                                 transition_entry<state<init_state>, state<final_state>, epsilon_transition>,

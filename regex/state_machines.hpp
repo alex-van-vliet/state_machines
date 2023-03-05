@@ -115,8 +115,8 @@ namespace regex {
         template<typename TransitionList, typename FromList>
         struct follow_epsilon_transitions {
             using transitions = helpers::list_filter_t<TransitionList, filter_transition_entry_from<FromList>>;
-            using epsilon_transitions = helpers::list_filter_t<transitions, filter_transition_entry_transition<helpers::list<epsilon_transition>>>;
-            using non_epsilon_transitions = helpers::list_filter_t<transitions, helpers::predicate_not<filter_transition_entry_transition<helpers::list<epsilon_transition>>>>;
+            using epsilon_transitions = helpers::list_filter_t<transitions, filter_transition_entry_transition<helpers::list_construct_t<epsilon_transition>>>;
+            using non_epsilon_transitions = helpers::list_filter_t<transitions, helpers::predicate_not<filter_transition_entry_transition<helpers::list_construct_t<epsilon_transition>>>>;
 
             using next = follow_epsilon_transitions<TransitionList, helpers::list_map_t<epsilon_transitions, map_transition_entry_to>>;
 
@@ -125,16 +125,16 @@ namespace regex {
         };
 
         template<typename TransitionList>
-        struct follow_epsilon_transitions<TransitionList, helpers::list<>> {
-            using transition_list_type = helpers::list<>;
-            using state_list_type = helpers::list<>;
+        struct follow_epsilon_transitions<TransitionList, helpers::list_end> {
+            using transition_list_type = helpers::list_end;
+            using state_list_type = helpers::list_end;
         };
 
         template<typename TransitionList, typename ToList>
         struct reverse_epsilon_transitions {
             using transitions = helpers::list_filter_t<TransitionList, filter_transition_entry_to<ToList>>;
-            using epsilon_transitions = helpers::list_filter_t<transitions, filter_transition_entry_transition<helpers::list<epsilon_transition>>>;
-            using non_epsilon_transitions = helpers::list_filter_t<transitions, helpers::predicate_not<filter_transition_entry_transition<helpers::list<epsilon_transition>>>>;
+            using epsilon_transitions = helpers::list_filter_t<transitions, filter_transition_entry_transition<helpers::list_construct_t<epsilon_transition>>>;
+            using non_epsilon_transitions = helpers::list_filter_t<transitions, helpers::predicate_not<filter_transition_entry_transition<helpers::list_construct_t<epsilon_transition>>>>;
 
             using next = reverse_epsilon_transitions<TransitionList, helpers::list_map_t<epsilon_transitions, map_transition_entry_from>>;
 
@@ -143,9 +143,9 @@ namespace regex {
         };
 
         template<typename TransitionList>
-        struct reverse_epsilon_transitions<TransitionList, helpers::list<>> {
-            using transition_list_type = helpers::list<>;
-            using state_list_type = helpers::list<>;
+        struct reverse_epsilon_transitions<TransitionList, helpers::list_end> {
+            using transition_list_type = helpers::list_end;
+            using state_list_type = helpers::list_end;
         };
 
         template<size_t From>
@@ -156,7 +156,7 @@ namespace regex {
 
         template<typename TransitionList, size_t... States>
         auto to_nfa_generate_transition_table(std::index_sequence<States...>)
-                -> helpers::list_concat_t<helpers::list_map_t<typename follow_epsilon_transitions<TransitionList, helpers::list<state<States>>>::transition_list_type, generate_transition_entry<States>>...>;
+                -> helpers::list_concat_t<helpers::list_map_t<typename follow_epsilon_transitions<TransitionList, helpers::list_construct_t<state<States>>>::transition_list_type, generate_transition_entry<States>>...>;
     }// namespace detail
 
     // Converts an epsilon nfa to a nfa
@@ -164,8 +164,8 @@ namespace regex {
     struct to_nfa {
         using type = nfa<
                 StateMachine::state_count,
-                typename detail::follow_epsilon_transitions<typename StateMachine::transition_list, helpers::list<typename StateMachine::init_state>>::state_list_type,
-                typename detail::reverse_epsilon_transitions<typename StateMachine::transition_list, helpers::list<typename StateMachine::final_state>>::state_list_type,
+                typename detail::follow_epsilon_transitions<typename StateMachine::transition_list, helpers::list_construct_t<typename StateMachine::init_state>>::state_list_type,
+                typename detail::reverse_epsilon_transitions<typename StateMachine::transition_list, helpers::list_construct_t<typename StateMachine::final_state>>::state_list_type,
                 decltype(detail::to_nfa_generate_transition_table<typename StateMachine::transition_list>(std::make_index_sequence<StateMachine::state_count>{}))>;
     };
 
@@ -200,20 +200,20 @@ namespace regex {
         struct to_dfa_group_by_transition {};
 
         template<>
-        struct to_dfa_group_by_transition<helpers::list<>> {
-            using type = helpers::map<helpers::list<>>;
+        struct to_dfa_group_by_transition<helpers::list_end> {
+            using type = helpers::map<helpers::list_end>;
         };
 
-        template<typename FromState, typename ToState, typename Transition, typename... TransitionEntries>
-        struct to_dfa_group_by_transition<helpers::list<transition_entry<FromState, ToState, Transition>, TransitionEntries...>> {
-            using next = to_dfa_group_by_transition<helpers::list<TransitionEntries...>>;
+        template<typename FromState, typename ToState, typename Transition, typename NextTransitionEntries>
+        struct to_dfa_group_by_transition<helpers::list_node<transition_entry<FromState, ToState, Transition>, NextTransitionEntries>> {
+            using next = to_dfa_group_by_transition<NextTransitionEntries>;
 
             using type = decltype(([] {
                 using to_states = helpers::map_find_t<typename next::type, Transition>;
                 if constexpr (std::is_same_v<to_states, helpers::map_not_found>) {
-                    return helpers::map_insert_t<typename next::type, Transition, helpers::list<ToState>>{};
+                    return helpers::map_insert_t<typename next::type, Transition, helpers::list_construct_t<ToState>>{};
                 } else {
-                    return helpers::map_set_t<typename next::type, Transition, helpers::list_push_back_t<to_states, ToState>>{};
+                    return helpers::map_set_t<typename next::type, Transition, helpers::list_push_front_t<to_states, ToState>>{};
                 }
             })());
         };
@@ -232,15 +232,15 @@ namespace regex {
         template<typename ConversionTable, typename GroupList>
         struct to_dfa_add_groups_to_conversion_table {};
 
-        template<typename ConversionTable, typename Group, typename... Groups>
-        struct to_dfa_add_groups_to_conversion_table<ConversionTable, helpers::list<Group, Groups...>> {
+        template<typename ConversionTable, typename Group, typename NextGroups>
+        struct to_dfa_add_groups_to_conversion_table<ConversionTable, helpers::list_node<Group, NextGroups>> {
             using type = typename to_dfa_add_groups_to_conversion_table<
                     helpers::map_insert_t<ConversionTable, Group, state<helpers::list_length_v<helpers::map_list_t<ConversionTable>>>>,
-                    helpers::list<Groups...>>::type;
+                    NextGroups>::type;
         };
 
         template<typename ConversionTable>
-        struct to_dfa_add_groups_to_conversion_table<ConversionTable, helpers::list<>> {
+        struct to_dfa_add_groups_to_conversion_table<ConversionTable, helpers::list_end> {
             using type = ConversionTable;
         };
 
@@ -255,8 +255,8 @@ namespace regex {
         template<typename TransitionList, typename ConversionTable, typename RemainingGroupList>
         struct to_dfa_generate_conversion_table {};
 
-        template<typename TransitionList, typename ConversionTable, typename CurrentGroup, typename... RemainingGroups>
-        struct to_dfa_generate_conversion_table<TransitionList, ConversionTable, helpers::list<CurrentGroup, RemainingGroups...>> {
+        template<typename TransitionList, typename ConversionTable, typename CurrentGroup, typename RemainingGroups>
+        struct to_dfa_generate_conversion_table<TransitionList, ConversionTable, helpers::list_node<CurrentGroup, RemainingGroups>> {
             using current_group_state = helpers::map_find_t<ConversionTable, CurrentGroup>;
 
             using transitions = helpers::list_filter_t<TransitionList, filter_transition_entry_from<CurrentGroup>>;
@@ -270,7 +270,7 @@ namespace regex {
             using next = to_dfa_generate_conversion_table<TransitionList,
                                                           new_conversion_table,
                                                           helpers::list_concat_t<
-                                                                  helpers::list<RemainingGroups...>,
+                                                                  RemainingGroups,
                                                                   new_groups>>;
 
             using type = typename next::type;
@@ -278,13 +278,12 @@ namespace regex {
             using transition_list_type = helpers::list_concat_t<
                     helpers::list_map_t<helpers::map_list_t<grouped_transitions>, to_dfa_grouped_transitions_to_transition_list_mapper<new_conversion_table, current_group_state>>,
                     typename next::transition_list_type>;
-            // Create the transitions
         };
 
         template<typename TransitionList, typename ConversionTable>
-        struct to_dfa_generate_conversion_table<TransitionList, ConversionTable, helpers::list<>> {
+        struct to_dfa_generate_conversion_table<TransitionList, ConversionTable, helpers::list_end> {
             using type = ConversionTable;
-            using transition_list_type = helpers::list<>;
+            using transition_list_type = helpers::list_end;
         };
 
         template<typename FinalStateList>
@@ -299,8 +298,8 @@ namespace regex {
     struct to_dfa {
         using conversion_table = detail::to_dfa_generate_conversion_table<
                 typename StateMachine::transition_list,
-                helpers::map<helpers::list<helpers::map_entry<detail::state_list_to_group<typename StateMachine::init_state_list>, state<0>>>>,
-                helpers::list<detail::state_list_to_group<typename StateMachine::init_state_list>>>;
+                helpers::map<helpers::list_construct_t<helpers::map_entry<detail::state_list_to_group<typename StateMachine::init_state_list>, state<0>>>>,
+                helpers::list_construct_t<detail::state_list_to_group<typename StateMachine::init_state_list>>>;
 
         using type = dfa<
                 helpers::list_length_v<helpers::map_list_t<typename conversion_table::type>>,
@@ -314,13 +313,13 @@ namespace regex {
 
     template<typename StateMachine, helpers::string String, size_t Pos = 0, typename State = typename StateMachine::init_state>
     struct test {
-        static constexpr bool value = ([]{
+        static constexpr bool value = ([] {
             if constexpr (Pos == String.size()) {
                 return helpers::list_contains_v<typename StateMachine::final_state_list, State>;
             } else {
                 using transition =
-                        helpers::list_find_t<typename StateMachine::transition_list, helpers::predicate_and<filter_transition_entry_from<helpers::list<State>>,
-                                                                                                            filter_transition_entry_transition<helpers::list<character_transition<String.at(Pos)>>>>>;
+                        helpers::list_find_t<typename StateMachine::transition_list, helpers::predicate_and<filter_transition_entry_from<helpers::list_construct_t<State>>,
+                                                                                                            filter_transition_entry_transition<helpers::list_construct_t<character_transition<String.at(Pos)>>>>>;
                 if constexpr (std::is_same_v<transition, helpers::list_not_found>) {
                     return false;
                 } else {
@@ -335,19 +334,16 @@ namespace regex {
 
 
     template<typename StateMachine>
-    struct runtime;
-
-    template<size_t StateCount, typename InitState, typename... FinalStates, typename... Transitions>
-    struct runtime<dfa<StateCount, InitState, helpers::list<FinalStates...>, helpers::list<Transitions...>>> {
+    struct runtime {
         std::unordered_set<size_t> final_states;
-        std::array<std::unordered_map<char, size_t>, StateCount> transitions;
+        std::array<std::unordered_map<char, size_t>, StateMachine::state_count> transitions;
 
-        runtime() : final_states{{FinalStates::id}...}, transitions{} {
-            ((void) transitions[Transitions::from_state::id].insert({Transitions::transition::value, Transitions::to_state::id}), ...);
+        runtime() : final_states{}, transitions{} {
+            // ((void) transitions[Transitions::from_state::id].insert({Transitions::transition::value, Transitions::to_state::id}), ...);
         }
 
         bool test(std::string_view str) const {
-            size_t state = InitState::id;
+            size_t state = StateMachine::init_state::id;
 
             for (auto c: str) {
                 auto next = transitions[state].find(c);
