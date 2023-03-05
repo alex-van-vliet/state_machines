@@ -332,6 +332,34 @@ namespace regex {
     template<typename StateMachine, helpers::string String>
     constexpr auto test_v = test<StateMachine, String>::value;
 
+    namespace detail {
+        template<typename FinalStateList>
+        struct runtime_populate_final_states {
+            void operator()(auto &final_states) {
+                final_states.insert(FinalStateList::value::id);
+                runtime_populate_final_states<typename FinalStateList::next>{}(final_states);
+            }
+        };
+        template<>
+        struct runtime_populate_final_states<helpers::list_end> {
+            void operator()(auto &final_states) {}
+        };
+
+        template<typename TransitionList>
+        struct runtime_populate_transitions {
+            void operator()(auto &transitions) {
+                transitions[TransitionList::value::from_state::id].insert({
+                        TransitionList::value::transition::value,
+                        TransitionList::value::to_state::id,
+                });
+                runtime_populate_transitions<typename TransitionList::next>{}(transitions);
+            }
+        };
+        template<>
+        struct runtime_populate_transitions<helpers::list_end> {
+            void operator()(auto &transitions) {}
+        };
+    }// namespace detail
 
     template<typename StateMachine>
     struct runtime {
@@ -339,7 +367,8 @@ namespace regex {
         std::array<std::unordered_map<char, size_t>, StateMachine::state_count> transitions;
 
         runtime() : final_states{}, transitions{} {
-            // ((void) transitions[Transitions::from_state::id].insert({Transitions::transition::value, Transitions::to_state::id}), ...);
+            detail::runtime_populate_final_states<typename StateMachine::final_state_list>{}(final_states);
+            detail::runtime_populate_transitions<typename StateMachine::transition_list>{}(transitions);
         }
 
         bool test(std::string_view str) const {
