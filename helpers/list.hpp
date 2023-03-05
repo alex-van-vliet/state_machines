@@ -169,6 +169,19 @@ namespace helpers {
     template<typename List, typename Predicate>
     using list_split_false_t = typename list_split<List, Predicate>::false_type;
 
+    template<typename List>
+    struct list_flatten {
+        using type = list_concat_t<typename List::value, typename list_flatten<typename List::next>::type>;
+    };
+
+    template<>
+    struct list_flatten<list_end> {
+        using type = list_end;
+    };
+
+    template<typename List>
+    using list_flatten_t = typename list_flatten<List>::type;
+
     template<typename Predicate>
     struct predicate_not {
         template<typename Value>

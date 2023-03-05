@@ -46,6 +46,10 @@ static_assert(std::is_same_v<helpers::list_split_false_t<empty_list, int32_or_in
 static_assert(std::is_same_v<helpers::list_split_true_t<my_list, int32_or_int64>, helpers::list_construct_t<int64_t, int32_t>>);
 static_assert(std::is_same_v<helpers::list_split_false_t<my_list, int32_or_int64>, helpers::list_construct_t<float, char>>);
 
+static_assert(std::is_same_v<helpers::list_flatten_t<helpers::list_construct_t<empty_list>>, helpers::list_end>);
+static_assert(std::is_same_v<helpers::list_flatten_t<helpers::list_construct_t<my_list>>, my_list>);
+static_assert(std::is_same_v<helpers::list_flatten_t<helpers::list_construct_t<my_list, empty_list, my_list>>, helpers::list_concat_t<my_list, my_list>>);
+
 static_assert(std::is_same_v<helpers::list_find_t<empty_list, int32_or_int64>, helpers::list_not_found>);
 static_assert(std::is_same_v<helpers::list_find_t<my_list, int32_or_int64>, int64_t>);
 
