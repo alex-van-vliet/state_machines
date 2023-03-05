@@ -60,6 +60,11 @@ namespace helpers {
         })());
     };
 
+    template<typename List, typename... Lists>
+    struct list_concat<List, list_end, Lists...> {
+        using type = typename list_concat<List, Lists...>::type;
+    };
+
     template<typename List>
     struct list_concat<List> {
         using type = List;
