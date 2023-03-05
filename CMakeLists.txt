@@ -3,6 +3,8 @@ project(state_machines)
 
 set(CMAKE_CXX_STANDARD 20)
 
+ADD_DEFINITIONS(-DSTAGE6)
+
 add_library(state_machines INTERFACE
         char_state_list_map.hpp
         dfa.hpp
